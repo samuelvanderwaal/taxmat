@@ -15,6 +15,18 @@ Outputs:
 
 
 
+### Install
+
+Linux:
+
+```bash
+git clone https://github.com/samuelvanderwaal/taxmat.git
+cd taxmat
+cargo install --path ./
+```
+
+
+
 ### API
 
 USAGE:
