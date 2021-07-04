@@ -148,10 +148,16 @@ impl FromStr for Currency {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
 pub enum Coin {
     DOT,
     KSM,
+    ATOM,
+    ETH,
+    SOL,
+    KAVA,
+    ADA,
+    XTZ,
 }
 
 impl FromStr for Coin {
@@ -161,6 +167,12 @@ impl FromStr for Coin {
         match &s.to_lowercase()[..] {
             "dot" | "dot.s" => Ok(Coin::DOT),
             "ksm" | "ksm.s" => Ok(Coin::KSM),
+            "atom" | "atom.s" => Ok(Coin::ATOM),
+            "eth" | "eth.s" | "eth2" | "eth2.s" => Ok(Coin::ETH),
+            "sol" | "sol.s" => Ok(Coin::SOL),
+            "kava" | "kava.s" => Ok(Coin::KAVA),
+            "ada" | "ada.s" => Ok(Coin::ADA),
+            "xtz" | "xtz.s" => Ok(Coin::XTZ),
             _ => bail!("Invalid coin type!"),
         }
     }

@@ -1,7 +1,6 @@
 ## Taxmat
 
 
-
 Parse various Polkadot staking rewards input files and convert to various formats for tax purposes. Currently supported formats:
 
 Inputs:
@@ -13,11 +12,12 @@ Outputs:
 
 * Bitcoin.tax
 
+Subscan files require specifying the coin type either DOT or KSM. Kraken files will read the asset type and convert all staking types to standard coin names: ETH2.S => ETH, ATOM.S => ATOM, DOT.S => DOT, etc. 
 
 
 ### Install
 
-Linux:
+On Linux install from source with `cargo`:
 
 ```bash
 git clone https://github.com/samuelvanderwaal/taxmat.git
@@ -37,7 +37,7 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -c, --coin <coin>                      DOT or KSM coin [default: DOT]
+    -c, --coin <coin>                      specify DOT or KSM coin for subscan files [default: DOT]
     -i, --input-format <input-format>      input CSV format [default: subscan]
     -o, --output-format <output-format>    output CSV format [default: bitcointax]
     -q, --quarter <quarter>                year's quarter to parse results [default: all]

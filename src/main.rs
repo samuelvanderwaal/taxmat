@@ -3,8 +3,8 @@ use chrono::prelude::*;
 use std::process;
 use structopt::StructOpt;
 
-use taxmat::opt::Opt;
 use taxmat::formats::*;
+use taxmat::opt::Opt;
 
 fn main() -> Result<()> {
     let options = Opt::from_args();
@@ -34,22 +34,27 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(options: &Opt, output_format: &OutputFormat) -> Result<()> {
+fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
+    options: &Opt,
+    output_format: &OutputFormat,
+) -> Result<()> {
     let symbol = options.coin;
 
     let (start_date, end_date) = get_date_range(&options);
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::Writer::from_path(&options.output)?;
-    
+
     for result in rdr.deserialize() {
         let res: D = result?;
-    
-        let date = NaiveDateTime::parse_from_str(&res.get_date()[..],"%Y-%m-%d %H:%M:%S")?;
+
+        let date = NaiveDateTime::parse_from_str(&res.get_date()[..], "%Y-%m-%d %H:%M:%S")?;
 
         if (start_date <= date) && (date <= end_date) {
             let record = match output_format {
-                OutputFormat::BitcoinTax => OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), symbol)),
+                OutputFormat::BitcoinTax => {
+                    OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), symbol))
+                }
             };
 
             wtr.serialize(record)?;
@@ -60,7 +65,7 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(options: &Opt, ou
 }
 
 fn parse_kraken_file(options: &Opt, output_format: &OutputFormat) -> Result<()> {
-    let symbol = options.coin;
+    // let symbol = options.coin;
 
     let (start_date, end_date) = get_date_range(&options);
 
@@ -70,22 +75,29 @@ fn parse_kraken_file(options: &Opt, output_format: &OutputFormat) -> Result<()> 
     for result in rdr.deserialize() {
         let res: Kraken = result?;
 
-        let date = NaiveDateTime::parse_from_str(&res.get_date()[..],"%Y-%m-%d %H:%M:%S")?;
+        let date = NaiveDateTime::parse_from_str(&res.get_date()[..], "%Y-%m-%d %H:%M:%S")?;
 
-        if (start_date <= date) && (date <= end_date) {
+        if (start_date <= date) && (date <= end_date) && res.action == "staking" {
+            let coin_opt = res.asset.parse::<Coin>();
 
-            if res.action == "staking" {
-                let record = match output_format {
-                    OutputFormat::BitcoinTax => OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), symbol)),
-                };
+            let coin = match coin_opt {
+                Ok(coin) => coin,
+                Err(e) => {
+                    println!("Invalid coin: {}", res.asset);
+                    panic!("{}", e);
+                }
+            };
+            let record = match output_format {
+                OutputFormat::BitcoinTax => {
+                    OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), coin))
+                }
+            };
 
-                wtr.serialize(record)?;
-            }
+            wtr.serialize(record)?;
         }
     }
 
     Ok(())
-
 }
 
 fn get_date_range(options: &Opt) -> (NaiveDateTime, NaiveDateTime) {
@@ -93,7 +105,7 @@ fn get_date_range(options: &Opt) -> (NaiveDateTime, NaiveDateTime) {
         Some(y) => y,
         None => Utc::now().naive_utc().year(),
     };
-    
+
     let (start_month, start_day) = match options.quarter {
         Quarter::Q1 => (1, 1),
         Quarter::Q2 => (4, 1),
@@ -101,7 +113,7 @@ fn get_date_range(options: &Opt) -> (NaiveDateTime, NaiveDateTime) {
         Quarter::Q4 => (10, 1),
         Quarter::ALL => (1, 1),
     };
-    
+
     let (end_month, end_day) = match options.quarter {
         Quarter::Q1 => (3, 31),
         Quarter::Q2 => (6, 30),
@@ -109,10 +121,8 @@ fn get_date_range(options: &Opt) -> (NaiveDateTime, NaiveDateTime) {
         Quarter::Q4 => (12, 31),
         Quarter::ALL => (12, 31),
     };
-    
-    let start_date = NaiveDate::from_ymd(year, start_month, start_day)
-        .and_hms(0, 0, 0);
-    let end_date = NaiveDate::from_ymd(year, end_month, end_day)
-        .and_hms(23, 59, 59);
+
+    let start_date = NaiveDate::from_ymd(year, start_month, start_day).and_hms(0, 0, 0);
+    let end_date = NaiveDate::from_ymd(year, end_month, end_day).and_hms(23, 59, 59);
     (start_date, end_date)
 }
