@@ -47,10 +47,10 @@ pub struct Kraken {
 
     #[serde(rename = "time")]
     pub date: String,
-    
+
     #[serde(rename = "type")]
     pub action: String,
-    
+
     pub aclass: String,
     pub asset: String,
     pub amount: f64,
@@ -92,10 +92,10 @@ impl FromStr for Quarter {
 
     fn from_str(s: &str) -> Result<Self> {
         match &s.to_lowercase()[..] {
-            "q1" => Ok(Quarter::Q1),
-            "q2" => Ok(Quarter::Q2),
-            "q3" => Ok(Quarter::Q3),
-            "q4" => Ok(Quarter::Q4),
+            "q1" | "1" => Ok(Quarter::Q1),
+            "q2" | "2" => Ok(Quarter::Q2),
+            "q3" | "3" => Ok(Quarter::Q3),
+            "q4" | "4" => Ok(Quarter::Q4),
             "all" => Ok(Quarter::ALL),
             _ => bail!("Invalid quarter!"),
         }
@@ -127,7 +127,6 @@ impl BitcoinTax {
         }
     }
 }
-
 
 #[derive(Debug, Serialize)]
 enum Currency {
