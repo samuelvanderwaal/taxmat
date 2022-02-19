@@ -1,5 +1,6 @@
 use anyhow::{bail, Error as AnyError, Result};
 use chrono::prelude::*;
+use serde::de::{self, Deserializer, Unexpected};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -11,7 +12,7 @@ pub trait InputRecord {
 
 #[derive(Debug, Deserialize)]
 pub struct Subscan {
-    #[serde(rename = "Event ID")]
+    #[serde(rename = "Event Index")]
     pub event_id: String,
 
     #[serde(rename = "Date")]
@@ -20,7 +21,7 @@ pub struct Subscan {
     #[serde(rename = "Block")]
     pub block: u64,
 
-    #[serde(rename = "Extrinsic Hash")]
+    #[serde(rename = "Extrinsic Index")]
     pub extrinsic: String,
 
     #[serde(rename = "Value")]
@@ -68,9 +69,43 @@ impl InputRecord for Kraken {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct StakeTax {
+    pub timestamp: String,
+    pub tx_type: String,
+    #[serde(deserialize_with = "bool_from_string")]
+    pub taxable: bool,
+    pub received_amount: Option<f64>,
+    pub received_currency: String,
+    pub sent_amount: Option<f64>,
+    pub sent_currency: String,
+    pub fee: Option<f64>,
+    pub fee_currency: String,
+    pub comment: String,
+    #[serde(rename = "txid")]
+    pub tx_id: String,
+    pub url: String,
+    pub exchange: String,
+    pub wallet_address: String,
+}
+
+impl InputRecord for StakeTax {
+    fn get_date(&self) -> &String {
+        &self.timestamp
+    }
+
+    fn get_amount(&self) -> f64 {
+        match self.received_amount {
+            Some(amount) => amount,
+            None => 0f64,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub enum InputFormat {
     Subscan,
     Kraken,
+    StakeTax,
 }
 
 #[derive(Debug)]
@@ -118,10 +153,13 @@ pub struct BitcoinTax {
 
 impl BitcoinTax {
     pub fn create(date: NaiveDateTime, volume: f64, symbol: Coin) -> Self {
+        let coin: String = symbol.into();
+        let account = format!("{} STAKING", coin);
+
         Self {
             date,
             action: "INCOME".into(),
-            account: "Polkadot Staking".into(),
+            account,
             symbol,
             volume,
         }
@@ -163,7 +201,7 @@ pub enum Coin {
 impl FromStr for Coin {
     type Err = AnyError;
 
-    fn from_str(s: &str) -> Result<Self> {
+    fn from_str(s: &str) -> Result<Coin, AnyError> {
         match &s.to_lowercase()[..] {
             "dot" | "dot.s" => Ok(Coin::DOT),
             "ksm" | "ksm.s" => Ok(Coin::KSM),
@@ -173,7 +211,53 @@ impl FromStr for Coin {
             "kava" | "kava.s" => Ok(Coin::KAVA),
             "ada" | "ada.s" => Ok(Coin::ADA),
             "xtz" | "xtz.s" => Ok(Coin::XTZ),
-            _ => bail!("Invalid coin type!"),
+            _ => panic!("Invalid coin type!"),
         }
+    }
+}
+
+impl From<String> for Coin {
+    fn from(s: String) -> Self {
+        match &s.to_lowercase()[..] {
+            "dot" | "dot.s" => Coin::DOT,
+            "ksm" | "ksm.s" => Coin::KSM,
+            "atom" | "atom.s" => Coin::ATOM,
+            "eth" | "eth.s" | "eth2" | "eth2.s" => Coin::ETH,
+            "sol" | "sol.s" => Coin::SOL,
+            "kava" | "kava.s" => Coin::KAVA,
+            "ada" | "ada.s" => Coin::ADA,
+            "xtz" | "xtz.s" => Coin::XTZ,
+            _ => panic!("Invalid coin type!"),
+        }
+    }
+}
+
+impl Into<String> for Coin {
+    fn into(self) -> String {
+        match self {
+            Coin::DOT => String::from("DOT"),
+            Coin::KSM => String::from("KSM"),
+            Coin::ATOM => String::from("ATOM"),
+            Coin::ETH => String::from("ETH"),
+            Coin::SOL => String::from("SOL"),
+            Coin::KAVA => String::from("KAVA"),
+            Coin::ADA => String::from("ADA"),
+            Coin::XTZ => String::from("XTZ"),
+        }
+    }
+}
+
+/// Deserialize bool from String with custom value mapping
+fn bool_from_string<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match &String::deserialize(deserializer)?.to_lowercase()[..] {
+        "true" => Ok(true),
+        "" | "false" => Ok(false),
+        other => Err(de::Error::invalid_value(
+            Unexpected::Str(other),
+            &"true or false",
+        )),
     }
 }

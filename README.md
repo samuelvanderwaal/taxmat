@@ -1,12 +1,13 @@
 ## Taxmat
 
 
-Parse various Polkadot staking rewards input files and convert to various formats for tax purposes. Currently supported formats:
+Parse various staking rewards input files and convert to various formats for tax purposes. Currently supported formats:
 
 Inputs:
 
 * Subscan
 * Kraken
+* StakeTax default.csv
 
 Outputs:
 
@@ -24,8 +25,6 @@ git clone https://github.com/samuelvanderwaal/taxmat.git
 cd taxmat
 cargo install --path ./
 ```
-
-
 
 ### API
 
@@ -60,6 +59,6 @@ taxmat -i kraken -y 2021 -q q2 kraken_ledgers.csv kraken_bitcointax.csv
 Subscan --> Bitcoin.tax
 
 ```bash
-taxmat-y 2021 -q 3 subscan.csv  subscan_bitcointax.csv
+taxmat -y 2021 -q 3 subscan.csv  subscan_bitcointax.csv
 ```
 
