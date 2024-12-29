@@ -94,10 +94,7 @@ impl InputRecord for StakeTax {
     }
 
     fn get_amount(&self) -> f64 {
-        match self.received_amount {
-            Some(amount) => amount,
-            None => 0f64,
-        }
+        self.received_amount.unwrap_or(0f64)
     }
 }
 
@@ -290,9 +287,9 @@ impl From<String> for Coin {
     }
 }
 
-impl Into<String> for Coin {
-    fn into(self) -> String {
-        match self {
+impl From<Coin> for String {
+    fn from(val: Coin) -> Self {
+        match val {
             Coin::DOT => String::from("DOT2"),
             Coin::KSM => String::from("KSM"),
             Coin::ATOM => String::from("ATOM"),

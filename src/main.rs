@@ -47,17 +47,17 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
 
     println!("symbol: {symbol:?}");
 
-    let (start_date, end_date) = get_date_range(&options);
+    let (start_date, end_date) = get_date_range(options);
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::Writer::from_path(&options.output)?;
 
     match output_format {
         OutputFormat::BitcoinTax => {
-            wtr.write_record(&["Date", "Action", "Account", "Symbol", "Volume"])?;
+            wtr.write_record(["Date", "Action", "Account", "Symbol", "Volume"])?;
         }
         OutputFormat::CoinTracking => {
-            wtr.write_record(&[
+            wtr.write_record([
                 "Type",
                 "Buy Amount",
                 "Buy Currency",
@@ -104,7 +104,7 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
 fn parse_staketax(options: &Opt, output_format: &OutputFormat) -> Result<()> {
     let symbol = options.coin;
 
-    let (start_date, end_date) = get_date_range(&options);
+    let (start_date, end_date) = get_date_range(options);
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::WriterBuilder::new()
@@ -134,7 +134,7 @@ fn parse_staketax(options: &Opt, output_format: &OutputFormat) -> Result<()> {
 fn parse_kraken_file(options: &Opt, output_format: &OutputFormat) -> Result<()> {
     // let symbol = options.coin;
 
-    let (start_date, end_date) = get_date_range(&options);
+    let (start_date, end_date) = get_date_range(options);
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::Writer::from_path(&options.output)?;
