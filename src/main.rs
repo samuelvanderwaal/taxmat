@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use csv::Terminator;
 use std::process;
@@ -47,7 +47,7 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
 
     println!("symbol: {symbol:?}");
 
-    let (start_date, end_date) = get_date_range(options);
+    let (start_date, end_date) = get_date_range(options)?;
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::Writer::from_path(&options.output)?;
@@ -104,7 +104,7 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
 fn parse_staketax(options: &Opt, output_format: &OutputFormat) -> Result<()> {
     let symbol = options.coin;
 
-    let (start_date, end_date) = get_date_range(options);
+    let (start_date, end_date) = get_date_range(options)?;
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::WriterBuilder::new()
@@ -134,7 +134,7 @@ fn parse_staketax(options: &Opt, output_format: &OutputFormat) -> Result<()> {
 fn parse_kraken_file(options: &Opt, output_format: &OutputFormat) -> Result<()> {
     // let symbol = options.coin;
 
-    let (start_date, end_date) = get_date_range(options);
+    let (start_date, end_date) = get_date_range(options)?;
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::Writer::from_path(&options.output)?;
@@ -168,7 +168,7 @@ fn parse_kraken_file(options: &Opt, output_format: &OutputFormat) -> Result<()> 
     Ok(())
 }
 
-fn get_date_range(options: &Opt) -> (NaiveDateTime, NaiveDateTime) {
+fn get_date_range(options: &Opt) -> Result<(NaiveDateTime, NaiveDateTime)> {
     let year = match options.year {
         Some(y) => y,
         None => Utc::now().naive_utc().year(),
@@ -190,7 +190,14 @@ fn get_date_range(options: &Opt) -> (NaiveDateTime, NaiveDateTime) {
         Quarter::ALL => (12, 31),
     };
 
-    let start_date = NaiveDate::from_ymd(year, start_month, start_day).and_hms(0, 0, 0);
-    let end_date = NaiveDate::from_ymd(year, end_month, end_day).and_hms(23, 59, 59);
-    (start_date, end_date)
+    let start_date = NaiveDate::from_ymd_opt(year, start_month, start_day)
+        .ok_or(anyhow!("failed to create ymd"))?
+        .and_hms_opt(0, 0, 0)
+        .ok_or(anyhow!("failed to create hms"))?;
+    let end_date = NaiveDate::from_ymd_opt(year, end_month, end_day)
+        .ok_or(anyhow!("failed to create ymd"))?
+        .and_hms_opt(23, 59, 59)
+        .ok_or(anyhow!("failed to create hms"))?;
+
+    Ok((start_date, end_date))
 }

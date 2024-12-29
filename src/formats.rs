@@ -221,6 +221,7 @@ impl CoinTracking {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Serialize)]
 enum Currency {
     USD,
