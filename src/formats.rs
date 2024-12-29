@@ -111,6 +111,7 @@ pub enum InputFormat {
 #[derive(Debug)]
 pub enum OutputFormat {
     BitcoinTax,
+    CoinTracking,
 }
 
 #[derive(Debug)]
@@ -140,6 +141,7 @@ impl FromStr for Quarter {
 #[derive(Debug, Serialize)]
 pub enum OutputRecord {
     BT(BitcoinTax),
+    CT(CoinTracking),
 }
 
 #[derive(Debug, Serialize)]
@@ -162,6 +164,62 @@ impl BitcoinTax {
             account,
             symbol,
             volume,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct CoinTracking {
+    #[serde(rename = "Type")]
+    tx_type: String,
+    #[serde(rename = "Buy Amount")]
+    buy_amount: f64,
+    #[serde(rename = "Buy Currency")]
+    buy_currency: String,
+    #[serde(rename = "Sell Amount")]
+    sell_amount: f64,
+    #[serde(rename = "Sell Currency")]
+    sell_currency: Currency,
+    #[serde(rename = "Fee")]
+    fee: f64,
+    #[serde(rename = "Fee Currency")]
+    fee_currency: Currency,
+    #[serde(rename = "Exchange")]
+    exchange: String,
+    #[serde(rename = "Trade-Group")]
+    trade_group: String,
+    #[serde(rename = "Comment")]
+    comment: String,
+    #[serde(rename = "Date")]
+    date: NaiveDateTime,
+    #[serde(rename = "Tx-ID")]
+    tx_id: String,
+    #[serde(rename = "Buy Value in Account Currency")]
+    buy_value: f64,
+}
+
+impl CoinTracking {
+    pub fn create(
+        buy_amount: f64,
+        buy_currency: String,
+        trade_group: String,
+        comment: String,
+        date: NaiveDateTime,
+    ) -> Self {
+        Self {
+            tx_type: "Income".into(),
+            buy_amount,
+            buy_currency,
+            sell_amount: 0.0,
+            sell_currency: Currency::USD,
+            fee: 0.0,
+            fee_currency: Currency::USD,
+            exchange: "".into(),
+            trade_group,
+            comment,
+            date,
+            tx_id: "".into(),
+            buy_value: 0.0,
         }
     }
 }
@@ -235,7 +293,7 @@ impl From<String> for Coin {
 impl Into<String> for Coin {
     fn into(self) -> String {
         match self {
-            Coin::DOT => String::from("DOT"),
+            Coin::DOT => String::from("DOT2"),
             Coin::KSM => String::from("KSM"),
             Coin::ATOM => String::from("ATOM"),
             Coin::ETH => String::from("ETH"),

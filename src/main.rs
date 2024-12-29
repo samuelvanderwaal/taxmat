@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::prelude::*;
+use csv::Terminator;
 use std::process;
 use structopt::StructOpt;
 
@@ -21,6 +22,7 @@ fn main() -> Result<()> {
 
     let output_format: OutputFormat = match &options.output_format.to_lowercase()[..] {
         "bitcointax" | "bitcoin.tax" => OutputFormat::BitcoinTax,
+        "cointracking" | "coin tracking" => OutputFormat::CoinTracking,
         _ => {
             println!("Invalid output format!");
             process::exit(1);
@@ -43,12 +45,35 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
 ) -> Result<()> {
     let symbol = options.coin;
 
+    println!("symbol: {symbol:?}");
+
     let (start_date, end_date) = get_date_range(&options);
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
     let mut wtr = csv::Writer::from_path(&options.output)?;
 
-    wtr.write_record(&["Date", "Action", "Account", "Symbol", "Volume"])?;
+    match output_format {
+        OutputFormat::BitcoinTax => {
+            wtr.write_record(&["Date", "Action", "Account", "Symbol", "Volume"])?;
+        }
+        OutputFormat::CoinTracking => {
+            wtr.write_record(&[
+                "Type",
+                "Buy Amount",
+                "Buy Currency",
+                "Sell Amount",
+                "Sell Currency",
+                "Fee",
+                "Fee Currency",
+                "Exchange",
+                "Trade-Group",
+                "Comment",
+                "Date",
+                "Tx-ID",
+                "Buy Value in Account Currency",
+            ])?;
+        }
+    }
 
     for result in rdr.deserialize() {
         let res: D = result?;
@@ -60,6 +85,13 @@ fn parse_records<D: InputRecord + serde::de::DeserializeOwned>(
                 OutputFormat::BitcoinTax => {
                     OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), symbol))
                 }
+                OutputFormat::CoinTracking => OutputRecord::CT(CoinTracking::create(
+                    res.get_amount(),
+                    symbol.into(),
+                    "Polkadot Staking".into(),
+                    "Self-Staking".to_string(),
+                    date,
+                )),
             };
 
             wtr.serialize(record)?;
@@ -75,7 +107,9 @@ fn parse_staketax(options: &Opt, output_format: &OutputFormat) -> Result<()> {
     let (start_date, end_date) = get_date_range(&options);
 
     let mut rdr = csv::Reader::from_path(&options.input)?;
-    let mut wtr = csv::Writer::from_path(&options.output)?;
+    let mut wtr = csv::WriterBuilder::new()
+        .terminator(Terminator::CRLF)
+        .from_path(&options.output)?;
 
     for result in rdr.deserialize() {
         let res: StakeTax = result?;
@@ -87,6 +121,7 @@ fn parse_staketax(options: &Opt, output_format: &OutputFormat) -> Result<()> {
                 OutputFormat::BitcoinTax => {
                     OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), symbol))
                 }
+                _ => panic!("Not currently supported"),
             };
 
             wtr.serialize(record)?;
@@ -123,6 +158,7 @@ fn parse_kraken_file(options: &Opt, output_format: &OutputFormat) -> Result<()> 
                 OutputFormat::BitcoinTax => {
                     OutputRecord::BT(BitcoinTax::create(date, res.get_amount(), coin))
                 }
+                _ => panic!("Not currently supported"),
             };
 
             wtr.serialize(record)?;
